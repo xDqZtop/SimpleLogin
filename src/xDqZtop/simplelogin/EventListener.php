@@ -4,6 +4,10 @@ declare(strict_types=1);
 namespace xDqZtop\simplelogin;
 
 use JsonException;
+use pocketmine\event\block\BlockBreakEvent;
+use pocketmine\event\block\BlockPlaceEvent;
+use pocketmine\event\entity\EntityDamageByEntityEvent;
+use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
 use pocketmine\event\player\PlayerJoinEvent;
@@ -49,6 +53,50 @@ class EventListener implements Listener {
         if(!$dataManager->isLoggedIn($player->getName())) {
             $player->sendMessage(TF::RED."You must login to chat!");
             $event->cancel();
+        }
+    }
+
+    public function onBlockBreak(BlockBreakEvent $event): void {
+        $player = $event->getPlayer();
+        $dataManager = Main::$instance->getDataManager();
+
+        if(!$dataManager->isLoggedIn($player->getName())) {
+            $player->sendMessage(TF::RED."You must login to break blocks!");
+            $event->cancel();
+        }
+    }
+
+    public function onBlockPlace(BlockPlaceEvent $event): void {
+        $player = $event->getPlayer();
+        $dataManager = Main::$instance->getDataManager();
+
+        if(!$dataManager->isLoggedIn($player->getName())) {
+            $player->sendMessage(TF::RED."You must login to place blocks!");
+            $event->cancel();
+        }
+    }
+
+    public function onEntityDamage(EntityDamageEvent $event): void {
+        $entity = $event->getEntity();
+
+        if($event instanceof EntityDamageByEntityEvent) {
+            $damager = $event->getDamager();
+            if($damager instanceof Player) {
+                $dataManager = Main::$instance->getDataManager();
+
+                if(!$dataManager->isLoggedIn($damager->getName())) {
+                    $damager->sendMessage(TF::RED."You must login to attack!");
+                    $event->cancel();
+                }
+            }
+        }
+
+        if($entity instanceof Player) {
+            $dataManager = Main::$instance->getDataManager();
+
+            if(!$dataManager->isLoggedIn($entity->getName())) {
+                $event->cancel();
+            }
         }
     }
 
