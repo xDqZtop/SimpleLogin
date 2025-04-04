@@ -14,7 +14,6 @@ use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\player\Player;
-use pocketmine\utils\TextFormat as TF;
 use jojoe77777\FormAPI\CustomForm;
 
 class EventListener implements Listener {
@@ -51,7 +50,7 @@ class EventListener implements Listener {
         $dataManager = Main::$instance->getDataManager();
 
         if(!$dataManager->isLoggedIn($player->getName())) {
-            $player->sendMessage(TF::RED."You must login to chat!");
+            $player->sendMessage($dataManager->getPlayerChatError());
             $event->cancel();
         }
     }
@@ -61,7 +60,7 @@ class EventListener implements Listener {
         $dataManager = Main::$instance->getDataManager();
 
         if(!$dataManager->isLoggedIn($player->getName())) {
-            $player->sendMessage(TF::RED."You must login to break blocks!");
+            $player->sendMessage($dataManager->getPlayerBreakBlockError());
             $event->cancel();
         }
     }
@@ -71,7 +70,7 @@ class EventListener implements Listener {
         $dataManager = Main::$instance->getDataManager();
 
         if(!$dataManager->isLoggedIn($player->getName())) {
-            $player->sendMessage(TF::RED."You must login to place blocks!");
+            $player->sendMessage($dataManager->getPlayerPlaceBlockError());
             $event->cancel();
         }
     }
@@ -85,7 +84,7 @@ class EventListener implements Listener {
                 $dataManager = Main::$instance->getDataManager();
 
                 if(!$dataManager->isLoggedIn($damager->getName())) {
-                    $damager->sendMessage(TF::RED."You must login to attack!");
+                    $damager->sendMessage($dataManager->getPlayerHitError());
                     $event->cancel();
                 }
             }
@@ -110,14 +109,15 @@ class EventListener implements Listener {
     }
 
     private function sendLoginForm(Player $player): void {
-        $form = new CustomForm(function(Player $player, ?array $data) {
+        $dataManager = Main::$instance->getDataManager();
+
+        $form = new CustomForm(function(Player $player, ?array $data) use ($dataManager) {
             if ($data === null) {
-                $player->kick("§cPlease login to play!");
+                $player->kick($dataManager->getLoginKick());
                 return;
             }
 
             $password = $data[1] ?? "";
-            $dataManager = Main::$instance->getDataManager();
 
             if ($dataManager->checkPassword($player->getName(), $password)) {
                 $dataManager->setLoggedIn($player->getName(), true);
@@ -125,25 +125,26 @@ class EventListener implements Listener {
                 foreach(Main::$instance->getServer()->getOnlinePlayers() as $onlinePlayer) {
                     $onlinePlayer->showPlayer($player);
                 }
-                $player->sendMessage("§aLogin successful!");
+                $player->sendMessage($dataManager->getLoginSuccessful());
 
                 $this->sendDelayedJoinMessage("§e" . $player->getName() . " joined the game");
             } else {
-                $player->sendMessage("§cWrong password!");
+                $player->sendMessage($dataManager->getLoginWrong());
                 $this->sendLoginForm($player);
             }
         });
 
-        $form->setTitle("Login");
-        $form->addLabel("Enter your password:");
-        $form->addInput("Password:");
+        $form->setTitle($dataManager->getLoginTitle());
+        $form->addLabel($dataManager->getLoginLabel());
+        $form->addInput($dataManager->getLoginInput());
         $player->sendForm($form);
     }
 
     private function sendRegisterForm(Player $player): void {
-        $form = new CustomForm(function(Player $player, ?array $data) {
+        $dataManager = Main::$instance->getDataManager();
+        $form = new CustomForm(function(Player $player, ?array $data) use ($dataManager) {
             if ($data === null) {
-                $player->kick("§cPlease register to play!");
+                $player->kick($dataManager->getRegisterKick());
                 return;
             }
 
@@ -151,12 +152,11 @@ class EventListener implements Listener {
             $confirm = $data[2] ?? "";
 
             if ($password !== $confirm) {
-                $player->sendMessage("§cPasswords don't match!");
+                $player->sendMessage($dataManager->getRegisterDontMatch());
                 $this->sendRegisterForm($player);
                 return;
             }
 
-            $dataManager = Main::$instance->getDataManager();
             $dataManager->registerPlayer($player->getName(), $password);
             $dataManager->setLoggedIn($player->getName(), true);
 
@@ -164,15 +164,15 @@ class EventListener implements Listener {
             foreach(Main::$instance->getServer()->getOnlinePlayers() as $onlinePlayer) {
                 $onlinePlayer->showPlayer($player);
             }
-            $player->sendMessage("§aRegistration successful!");
+            $player->sendMessage($dataManager->getRegisterSuccessful());
 
             $this->sendDelayedJoinMessage("§e" . $player->getName() . " joined the game");
         });
 
-        $form->setTitle("Register");
-        $form->addLabel("Choose a password:");
-        $form->addInput("Password:");
-        $form->addInput("Confirm Password:");
+        $form->setTitle($dataManager->getRegisterTitle());
+        $form->addLabel($dataManager->getRegisterLabel());
+        $form->addInput($dataManager->getRegisterInput1());
+        $form->addInput($dataManager->getRegisterInput2());
         $player->sendForm($form);
     }
 

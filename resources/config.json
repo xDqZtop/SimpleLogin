@@ -1,0 +1,21 @@
+{
+  "player-chat-error": "§cYou must login to chat!",
+  "player-kandan-block-error": "§cYou must login to break blocks!",
+  "player-gozashtan-block-error": "§cYou must login to place blocks!",
+  "player-zadan-error": "§cYou must login to attack!",
+
+  "login-biroonandakhtan": "§cPlease login to play!",
+  "login-taid": "§aLogin successful!",
+  "login-ramz-ghalat": "§cWrong password!",
+  "login-title": "Login",
+  "login-label": "Enter your password:",
+  "login-input": "Password:",
+
+  "register-biroonandakhtan": "§cPlease register to play!",
+  "register-mach-nist-error": "§cPasswords don't match!",
+  "register-taid": "§aRegistration successful!",
+  "register-title": "Register",
+  "register-label": "Choose a password:",
+  "register-input1": "Password:",
+  "register-input2": "Confirm Password:"
+}
