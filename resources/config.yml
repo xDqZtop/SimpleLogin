@@ -1,0 +1,18 @@
+# server name in waterdog|proxy config for transfer
+server: "lobby"
+# transfer mode : on|off
+transfer: "off"
+# login mode : A|B
+login: "A"
+# register mode : A|B
+register: "A"
+
+min: 4
+max: 16
+
+# messages
+chat: "§cYou must login to chat!"
+break: "§cYou must login to break blocks!"
+place: "§cYou must login to place blocks!"
+damage: "§cYou must login to attack!"
+drop: "§cYou must login to drop!"

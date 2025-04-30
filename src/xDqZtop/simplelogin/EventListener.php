@@ -3,183 +3,185 @@ declare(strict_types=1);
 
 namespace xDqZtop\simplelogin;
 
+//use JsonException;
+//use pocketmine\event\block\BlockBreakEvent;
+//use pocketmine\event\block\BlockPlaceEvent;
+//use pocketmine\event\entity\EntityDamageByEntityEvent;
+//use pocketmine\event\entity\EntityDamageEvent;
+//use pocketmine\event\player\PlayerChatEvent;
+//use pocketmine\event\player\PlayerJoinEvent;
+//use pocketmine\event\player\PlayerMoveEvent;
+//use pocketmine\event\player\PlayerQuitEvent;
+//use pocketmine\player\Player;
 use JsonException;
+use pocketmine\entity\effect\EffectInstance;
+use pocketmine\entity\effect\VanillaEffects;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
+use pocketmine\event\player\PlayerDropItemEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\player\Player;
-use jojoe77777\FormAPI\CustomForm;
+use xDqZtop\simplelogin\forms\LoginForm;
+use xDqZtop\simplelogin\forms\RegisterForm;
 
-class EventListener implements Listener {
+class EventListener implements Listener
+{
 
-    public function onJoin(PlayerJoinEvent $event): void {
+    /**
+     * @param PlayerQuitEvent $event
+     * @return void
+     * @throws JsonException
+     */
+    public function onQuit(PlayerQuitEvent $event): void
+    {
+        $plugin = Main::getInstance();
+        $name = strtolower($event->getPlayer()->getName());
+        $s = $plugin->getStateManager();
+        $s->setFalse($name);
+    }
+
+    /**
+     * @param PlayerJoinEvent $event
+     * @return void
+     * @throws JsonException
+     */
+    public function onJoin(PlayerJoinEvent $event): void
+    {
+        $plugin = Main::getInstance();
         $player = $event->getPlayer();
-        $dataManager = Main::$instance->getDataManager();
-
-        $player->setInvisible();
-        foreach(Main::$instance->getServer()->getOnlinePlayers() as $onlinePlayer) {
-            $onlinePlayer->hidePlayer($player);
-        }
-
-        $event->setJoinMessage("");
-
-        if ($dataManager->isRegistered($player->getName())) {
-            $this->sendLoginForm($player);
+        $name = strtolower($player->getName());
+        $r = $plugin->getRegisterManager();
+        $c = $plugin->getConfigManager();
+        $s = $plugin->getStateManager();
+        $s->setFalse($name);
+        if ($r->check($name)) {
+            if ($c->getRegister() === "A") {
+                RegisterForm::getInstance()->registerFormA($player);
+            } elseif ($c->getRegister() === "B") {
+                RegisterForm::getInstance()->registerFormB($player);
+            }
         } else {
-            $this->sendRegisterForm($player);
-        }
-    }
-
-    public function onMove(PlayerMoveEvent $event): void {
-        $player = $event->getPlayer();
-        $dataManager = Main::$instance->getDataManager();
-
-        if(!$dataManager->isLoggedIn($player->getName())) {
-            $event->cancel();
-        }
-    }
-
-    public function onChat(PlayerChatEvent $event): void {
-        $player = $event->getPlayer();
-        $dataManager = Main::$instance->getDataManager();
-
-        if(!$dataManager->isLoggedIn($player->getName())) {
-            $player->sendMessage($dataManager->getPlayerChatError());
-            $event->cancel();
-        }
-    }
-
-    public function onBlockBreak(BlockBreakEvent $event): void {
-        $player = $event->getPlayer();
-        $dataManager = Main::$instance->getDataManager();
-
-        if(!$dataManager->isLoggedIn($player->getName())) {
-            $player->sendMessage($dataManager->getPlayerBreakBlockError());
-            $event->cancel();
-        }
-    }
-
-    public function onBlockPlace(BlockPlaceEvent $event): void {
-        $player = $event->getPlayer();
-        $dataManager = Main::$instance->getDataManager();
-
-        if(!$dataManager->isLoggedIn($player->getName())) {
-            $player->sendMessage($dataManager->getPlayerPlaceBlockError());
-            $event->cancel();
-        }
-    }
-
-    public function onEntityDamage(EntityDamageEvent $event): void {
-        $entity = $event->getEntity();
-
-        if($event instanceof EntityDamageByEntityEvent) {
-            $damager = $event->getDamager();
-            if($damager instanceof Player) {
-                $dataManager = Main::$instance->getDataManager();
-
-                if(!$dataManager->isLoggedIn($damager->getName())) {
-                    $damager->sendMessage($dataManager->getPlayerHitError());
-                    $event->cancel();
-                }
+            if ($c->getLogin() === "A") {
+                LoginForm::getInstance()->loginFormA($player);
+            } elseif ($c->getLogin() === "B") {
+                LoginForm::getInstance()->loginFormB($player);
             }
         }
+        if ($c->getTransfer() == "on") {
+            return;
+        } elseif ($c->getTransfer() == "off") {
+            $player->setInvisible();
+            $player->getEffects()->add(new EffectInstance(VanillaEffects::BLINDNESS(), 20 * 120, 2, false, false));
+        }
+    }
 
-        if($entity instanceof Player) {
-            $dataManager = Main::$instance->getDataManager();
+    /**
+     * @param PlayerMoveEvent $event
+     * @return void
+     */
+    public function onMove(PlayerMoveEvent $event): void
+    {
+        $player = $event->getPlayer();
+        $name = strtolower($player->getName());
+        $plugin = Main::getInstance();
+        $s = $plugin->getStateManager();
+        if ($s->getState($name) === false) {
+            $event->cancel();
+        }
+    }
 
-            if(!$dataManager->isLoggedIn($entity->getName())) {
-                $event->cancel();
+    /**
+     * @param PlayerChatEvent $event
+     * @return void
+     */
+    public function onChat(PlayerChatEvent $event): void
+    {
+        $player = $event->getPlayer();
+        $name = strtolower($player->getName());
+        $plugin = Main::getInstance();
+        $c = $plugin->getConfigManager();
+        $s = $plugin->getStateManager();
+        if ($s->getState($name) === false) {
+            $player->sendMessage($c->getError("chat"));
+            $event->cancel();
+        }
+    }
+
+    /**
+     * @param BlockBreakEvent $event
+     * @return void
+     */
+    public function onBlockBreak(BlockBreakEvent $event): void
+    {
+        $player = $event->getPlayer();
+        $name = strtolower($player->getName());
+        $plugin = Main::getInstance();
+        $c = $plugin->getConfigManager();
+        $s = $plugin->getStateManager();
+        if ($s->getState($name) === false) {
+            $player->sendMessage($c->getError("break"));
+            $event->cancel();
+        }
+    }
+
+    /**
+     * @param BlockPlaceEvent $event
+     * @return void
+     */
+    public function onBlockPlace(BlockPlaceEvent $event): void
+    {
+        $player = $event->getPlayer();
+        $name = strtolower($player->getName());
+        $plugin = Main::getInstance();
+        $c = $plugin->getConfigManager();
+        $s = $plugin->getStateManager();
+        if ($s->getState($name) === false) {
+            $player->sendMessage($c->getError("place"));
+            $event->cancel();
+        }
+    }
+
+    /**
+     * @param EntityDamageEvent $event
+     * @return void
+     */
+    public function onEntityDamage(EntityDamageEvent $event): void
+    {
+        $plugin = Main::getInstance();
+        $c = $plugin->getConfigManager();
+        $s = $plugin->getStateManager();
+        if ($event instanceof EntityDamageByEntityEvent) {
+            $damager = $event->getDamager();
+            if ($damager instanceof Player) {
+                $name = strtolower($damager->getName());
+                if ($s->getState($name) === false) {
+                    $damager->sendMessage($c->getError("damage"));
+                    $event->cancel();
+                }
             }
         }
     }
 
     /**
-     * @throws JsonException
+     * @param PlayerDropItemEvent $event
+     * @return void
      */
-    public function onQuit(PlayerQuitEvent $event): void {
+    public function onDrop(PlayerDropItemEvent $event): void
+    {
         $player = $event->getPlayer();
-        $dataManager = Main::$instance->getDataManager();
-        $dataManager->setLoggedIn($player->getName(), false);
-    }
-
-    private function sendLoginForm(Player $player): void {
-        $dataManager = Main::$instance->getDataManager();
-
-        $form = new CustomForm(function(Player $player, ?array $data) use ($dataManager) {
-            if ($data === null) {
-                $player->kick($dataManager->getLoginKick());
-                return;
-            }
-
-            $password = $data[1] ?? "";
-
-            if ($dataManager->checkPassword($player->getName(), $password)) {
-                $dataManager->setLoggedIn($player->getName(), true);
-                $player->setInvisible(false);
-                foreach(Main::$instance->getServer()->getOnlinePlayers() as $onlinePlayer) {
-                    $onlinePlayer->showPlayer($player);
-                }
-                $player->sendMessage($dataManager->getLoginSuccessful());
-
-                $this->sendDelayedJoinMessage("§e" . $player->getName() . " joined the game");
-            } else {
-                $player->sendMessage($dataManager->getLoginWrong());
-                $this->sendLoginForm($player);
-            }
-        });
-
-        $form->setTitle($dataManager->getLoginTitle());
-        $form->addLabel($dataManager->getLoginLabel());
-        $form->addInput($dataManager->getLoginInput());
-        $player->sendForm($form);
-    }
-
-    private function sendRegisterForm(Player $player): void {
-        $dataManager = Main::$instance->getDataManager();
-        $form = new CustomForm(function(Player $player, ?array $data) use ($dataManager) {
-            if ($data === null) {
-                $player->kick($dataManager->getRegisterKick());
-                return;
-            }
-
-            $password = $data[1] ?? "";
-            $confirm = $data[2] ?? "";
-
-            if ($password !== $confirm) {
-                $player->sendMessage($dataManager->getRegisterDontMatch());
-                $this->sendRegisterForm($player);
-                return;
-            }
-
-            $dataManager->registerPlayer($player->getName(), $password);
-            $dataManager->setLoggedIn($player->getName(), true);
-
-            $player->setInvisible(false);
-            foreach(Main::$instance->getServer()->getOnlinePlayers() as $onlinePlayer) {
-                $onlinePlayer->showPlayer($player);
-            }
-            $player->sendMessage($dataManager->getRegisterSuccessful());
-
-            $this->sendDelayedJoinMessage("§e" . $player->getName() . " joined the game");
-        });
-
-        $form->setTitle($dataManager->getRegisterTitle());
-        $form->addLabel($dataManager->getRegisterLabel());
-        $form->addInput($dataManager->getRegisterInput1());
-        $form->addInput($dataManager->getRegisterInput2());
-        $player->sendForm($form);
-    }
-
-    private function sendDelayedJoinMessage(string $message): void {
-        foreach(Main::$instance->getServer()->getOnlinePlayers() as $onlinePlayer) {
-            $onlinePlayer->sendMessage($message);
+        $name = strtolower($player->getName());
+        $plugin = Main::getInstance();
+        $c = $plugin->getConfigManager();
+        $s = $plugin->getStateManager();
+        if ($s->getState($name) === false) {
+            $player->sendMessage($c->getError("drop"));
+            $event->cancel();
         }
-        Main::$instance->getServer()->getLogger()->info($message);
     }
 }
